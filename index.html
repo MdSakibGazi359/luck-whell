@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Name Spin Wheel</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #111827, #312e81);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  width: 95%;
+  max-width: 1000px;
+  text-align: center;
+  padding: 20px;
+}
+
+h1 {
+  margin-bottom: 20px;
+}
+
+.game {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.wheel-area {
+  position: relative;
+}
+
+canvas {
+  width: min(85vw, 500px);
+  height: min(85vw, 500px);
+  max-width: 500px;
+  max-height: 500px;
+  border-radius: 50%;
+  box-shadow: 0 0 30px rgba(0,0,0,.5);
+}
+
+.pointer {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-top: 35px solid #ef4444;
+  z-index: 5;
+}
+
+.panel {
+  width: 300px;
+  background: rgba(255,255,255,.1);
+  padding: 20px;
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+}
+
+textarea {
+  width: 100%;
+  height: 180px;
+  resize: vertical;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 16px;
+  outline: none;
+}
+
+button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#update {
+  background: #38bdf8;
+  color: #082f49;
+}
+
+#spin {
+  background: #22c55e;
+  color: #052e16;
+  font-size: 20px;
+}
+
+#clear {
+  background: #ef4444;
+  color: white;
+}
+
+#winner {
+  margin-top: 20px;
+  font-size: 26px;
+  font-weight: bold;
+  min-height: 35px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🎡 Custom Name Spin Wheel</h1>
+
+<div class="game">
+
+<div class="wheel-area">
+<div class="pointer"></div>
+<canvas id="wheel" width="500" height="500"></canvas>
+</div>
+
+<div class="panel">
+
+<h2>Names</h2>
+
+<textarea id="names">Emon
+Rahim
+Karim
+Sakib
+Tamim
+Nayeem</textarea>
+
+<button id="update">Update Wheel</button>
+<button id="spin">🎯 SPIN</button>
+<button id="clear">Clear Names</button>
+
+<div id="winner"></div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+const namesBox = document.getElementById("names");
+const winnerBox = document.getElementById("winner");
+
+let names = [];
+let rotation = 0;
+let spinning = false;
+
+const colors = [
+"#ef4444",
+"#f97316",
+"#eab308",
+"#22c55e",
+"#06b6d4",
+"#3b82f6",
+"#6366f1",
+"#8b5cf6",
+"#ec4899",
+"#14b8a6"
+];
+
+function getNames() {
+    names = namesBox.value
+        .split("\n")
+        .map(x => x.trim())
+        .filter(x => x.length > 0);
+}
+
+function drawWheel() {
+
+    getNames();
+
+    const center = canvas.width / 2;
+    const radius = center - 5;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (names.length === 0) {
+        ctx.beginPath();
+        ctx.arc(center, center, radius, 0, Math.PI * 2);
+        ctx.fillStyle = "#374151";
+        ctx.fill();
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 25px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Add names", center, center);
+        return;
+    }
+
+    const slice = (Math.PI * 2) / names.length;
+
+    for (let i = 0; i < names.length; i++) {
+
+        const start = rotation + i * slice;
+        const end = start + slice;
+
+        ctx.beginPath();
+        ctx.moveTo(center, center);
+        ctx.arc(center, center, radius, start, end);
+        ctx.closePath();
+
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.save();
+
+        ctx.translate(center, center);
+        ctx.rotate(start + slice / 2);
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 20px Arial";
+        ctx.textAlign = "right";
+
+        ctx.fillText(names[i], radius - 25, 7);
+
+        ctx.restore();
+    }
+
+    ctx.beginPath();
+    ctx.arc(center, center, 45, 0, Math.PI * 2);
+    ctx.fillStyle = "#111827";
+    ctx.fill();
+
+    ctx.fillStyle = "white";
+    ctx.font = "bold 15px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("SPIN", center, center + 5);
+}
+
+function spinWheel() {
+
+    if (spinning || names.length < 2) {
+        if (names.length < 2)
+            alert("Please add at least 2 names.");
+        return;
+    }
+
+    spinning = true;
+    winnerBox.textContent = "";
+
+    const winnerIndex = Math.floor(Math.random() * names.length);
+
+    const slice = (Math.PI * 2) / names.length;
+
+    /*
+      Pointer is at the top.
+      Calculate rotation needed to place
+      selected slice at the pointer.
+    */
+
+    const target =
+        -(winnerIndex * slice + slice / 2) - Math.PI / 2;
+
+    const extraSpins = 6 + Math.floor(Math.random() * 3);
+
+    const startRotation = rotation;
+
+    const finalRotation =
+        target + extraSpins * Math.PI * 2;
+
+    const duration = 5000;
+
+    const startTime = performance.now();
+
+    function animate(time) {
+
+        const progress = Math.min(
+            (time - startTime) / duration,
+            1
+        );
+
+        // Ease out
+        const ease =
+            1 - Math.pow(1 - progress, 4);
+
+        rotation =
+            startRotation +
+            (finalRotation - startRotation) * ease;
+
+        drawWheel();
+
+        if (progress < 1) {
+
+            requestAnimationFrame(animate);
+
+        } else {
+
+            spinning = false;
+
+            winnerBox.textContent =
+                "🏆 Winner: " + names[winnerIndex];
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
+document.getElementById("update")
+    .addEventListener("click", () => {
+        winnerBox.textContent = "";
+        drawWheel();
+    });
+
+document.getElementById("spin")
+    .addEventListener("click", spinWheel);
+
+document.getElementById("clear")
+    .addEventListener("click", () => {
+        namesBox.value = "";
+        names = [];
+        winnerBox.textContent = "";
+        drawWheel();
+    });
+
+drawWheel();
+
+</script>
+
+</body>
+</html>
